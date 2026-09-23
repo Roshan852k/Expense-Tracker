@@ -2,11 +2,15 @@
 const API_BASE =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
+
+const DEFAULT_API_KEY =
+  import.meta.env.VITE_API_KEY || "dev-local-only-key";
+
 /**
  * Get stored API key from sessionStorage
  */
 export function getApiKey() {
-  return sessionStorage.getItem("apiKey") || "";
+  return sessionStorage.getItem("apiKey") || DEFAULT_API_KEY;
 }
 
 /**

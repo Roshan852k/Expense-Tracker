@@ -4,7 +4,6 @@ import { useState } from "react";
 import Home from "./pages/Home";
 import AddExpense from "./pages/AddExpense";
 import Expenses from "./pages/Expenses";
-import ApiKeySetup from "./components/ApiKeySetup";
 import ErrorBoundary from "./components/ErrorBoundary";
 import "./index.css";
 
@@ -42,7 +41,6 @@ function App() {
           </Routes>
         </main>
 
-        <ApiKeySetup onKeySet={handleApiKeySet} />
       </ErrorBoundary>
     </BrowserRouter>
   );
