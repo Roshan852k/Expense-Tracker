@@ -1,0 +1,10 @@
+myvenv/
+__pycache__/
+*.pyc
+.env
+*.db
+*.sqlite
+*.sqlite3
+node_modules/
+dist/
+build/
