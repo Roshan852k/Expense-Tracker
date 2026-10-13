@@ -111,7 +111,7 @@ def _build_insights(
                     message=(
                         f"{category} spend is up "
                         f"{pct_change.quantize(Decimal('0.1'))}% vs last month "
-                        f"(${prev_total} → ${cur_total})."
+                        f"(₹{prev_total} → ₹{cur_total})."
                     ),
                 )
             )
