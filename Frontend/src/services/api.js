@@ -93,7 +93,7 @@ export const addExpense = (expense) =>
 export async function deleteExpense(id) {
   const resp = await fetch(`${API_BASE}/expenses/${id}`, {
     method: "DELETE",
-    headers: { "X-API-Key": API_KEY },   // copy whatever header/base URL getExpenses uses
+    headers: { "X-API-Key": DEFAULT_API_KEY },   // copy whatever header/base URL getExpenses uses
   });
   if (!resp.ok) {
     const data = await resp.json().catch(() => ({}));
