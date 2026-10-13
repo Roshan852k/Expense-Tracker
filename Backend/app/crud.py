@@ -21,6 +21,15 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate) -> models.Expens
     return db_expense
 
 
+def delete_expense(db: Session, expense_id: int) -> bool:
+    db_expense = db.get(models.Expense, expense_id)
+    if db_expense is None:
+        return False
+    db.delete(db_expense)
+    db.commit()
+    return True
+    
+
 def list_expenses(
     db: Session,
     category: Optional[str] = None,

@@ -77,6 +77,16 @@ def read_expenses(
     )
 
 
+@app.delete(
+    "/expenses/{expense_id}",
+    status_code=204,
+    dependencies=[Depends(require_api_key)],
+)
+def delete_expense(expense_id: int, db: Session = Depends(get_db)):
+    if not crud.delete_expense(db, expense_id):
+        raise HTTPException(status_code=404, detail=f"Expense {expense_id} not found")
+    
+
 @app.get(
     "/summary",
     response_model=schemas.SummaryOut,
