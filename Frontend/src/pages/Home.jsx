@@ -13,7 +13,7 @@ function Home() {
         setLoading(true);
         setError("");
         const data = await getSummary();
-        setSummary(data);$
+        setSummary(data);
       } catch (err) {
         setError(err.message);
       } finally {
