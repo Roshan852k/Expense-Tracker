@@ -96,12 +96,15 @@ function Expenses() {
   };
 
   // Format currency
+  
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
+      maximumFractionDigits: 2,
     }).format(amount);
   };
+
 
   // Format date for display
   const formatDate = (dateString) => {

@@ -69,6 +69,7 @@ function AddExpense() {
             name="amount"
             value={form.amount}
             onChange={handleChange}
+            placeholder="e.g., 500.00"
             required
           />
         </label>

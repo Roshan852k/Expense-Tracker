@@ -13,7 +13,7 @@ function Home() {
         setLoading(true);
         setError("");
         const data = await getSummary();
-        setSummary(data);
+        setSummary(data);$
       } catch (err) {
         setError(err.message);
       } finally {
@@ -30,9 +30,10 @@ function Home() {
 
   // Format currency
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
@@ -105,8 +106,8 @@ function Home() {
               <div key={idx} className="insight">
                 <strong>{insight.message}</strong>
                 <p>
-                  {insight.category}: ${insight.previous_month_total} → $
-                  {insight.current_month_total} ({insight.pct_change}% increase)
+                  {insight.category}: {formatCurrency(insight.previous_month_total)} →{" "}
+                  {formatCurrency(insight.current_month_total)} ({insight.pct_change}% increase)
                 </p>
               </div>
             ))}
