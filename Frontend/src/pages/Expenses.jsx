@@ -1,11 +1,12 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { getExpenses } from "../services/api";
+import { getExpenses, deleteExpense  } from "../services/api";
 
 function Expenses() {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -95,6 +96,26 @@ function Expenses() {
     }
   };
 
+  const handleDelete = async (expense) => {
+    const ok = window.confirm(
+      `Delete this expense (${expense.category}, ${formatCurrency(expense.amount)})? This cannot be undone.`
+    );
+    if (!ok) return;
+
+    try {
+      setDeletingId(expense.id);
+      setError("");
+      await deleteExpense(expense.id);
+
+      const isLastRowOnPage = expenses.length === 1 && offset > 0;
+      await fetchExpenses(isLastRowOnPage ? offset - limit : offset);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // Format currency
   
   const formatCurrency = (amount) => {
@@ -172,6 +193,7 @@ function Expenses() {
                 <th>Category</th>
                 <th>Amount</th>
                 <th>Note</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -183,7 +205,16 @@ function Expenses() {
                     {formatCurrency(expense.amount)}
                   </td>
                   <td>{expense.note || "-"}</td>
-                </tr>
+                <td>
+                <button
+                  onClick={() => handleDelete(expense)}
+                  disabled={deletingId === expense.id}
+                  style={{ background: "#b00020" }}
+                >
+                  {deletingId === expense.id ? "Deleting..." : "Delete"}
+                </button>
+              </td>
+              </tr>
               ))}
             </tbody>
           </table>
