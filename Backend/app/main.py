@@ -94,3 +94,15 @@ def delete_expense(expense_id: int, db: Session = Depends(get_db)):
 )
 def read_summary(db: Session = Depends(get_db)):
     return crud.get_summary(db)
+
+
+@app.get(
+    "/summary/monthly",
+    response_model=schemas.MonthlySeriesOut,
+    dependencies=[Depends(require_api_key)],
+)
+def read_monthly(
+    months: int = Query(default=6, ge=1, le=24, description="How many months back, including this one"),
+    db: Session = Depends(get_db),
+):
+    return crud.get_monthly_totals(db, months=months)

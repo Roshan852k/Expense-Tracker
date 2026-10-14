@@ -172,3 +172,44 @@ def get_summary(db: Session, today: Optional[date] = None) -> schemas.SummaryOut
         ),
         insights=insights,
     )
+
+
+def get_monthly_totals(
+    db: Session, months: int = 6, today: Optional[date] = None
+) -> schemas.MonthlySeriesOut:
+    """Total spend per calendar month for the last `months` months
+    (including the current one), oldest first. Months with no spend are
+    included as 0 so a chart's x-axis has no gaps."""
+    if today is None:
+        today = date.today()
+
+    # Build the list of (year, month) buckets, oldest first.
+    buckets = []
+    y, m = today.year, today.month
+    for _ in range(months):
+        buckets.append((y, m))
+        y, m = _prev_month(y, m)
+    buckets.reverse()
+
+    start, _ = _month_bounds(*buckets[0])
+    _, end = _month_bounds(*buckets[-1])
+
+    year_col = func.extract("year", models.Expense.date)
+    month_col = func.extract("month", models.Expense.date)
+    rows = (
+        db.query(year_col, month_col, func.sum(models.Expense.amount))
+        .filter(models.Expense.date >= start, models.Expense.date < end)
+        .group_by(year_col, month_col)
+        .all()
+    )
+    totals = {(int(yr), int(mo)): Decimal(total) for yr, mo, total in rows}
+
+    return schemas.MonthlySeriesOut(
+        months=[
+            schemas.MonthlyTotal(
+                month=f"{yr:04d}-{mo:02d}",
+                total=totals.get((yr, mo), Decimal("0.00")),
+            )
+            for yr, mo in buckets
+        ]
+    )

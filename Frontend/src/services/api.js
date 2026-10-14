@@ -100,3 +100,5 @@ export async function deleteExpense(id) {
     throw new Error(data.detail || "Failed to delete expense");
   }
 }
+
+export const getMonthly = (months = 6) => fetchJSON(`/summary/monthly?months=${months}`);

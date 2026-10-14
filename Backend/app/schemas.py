@@ -72,6 +72,8 @@ class SummaryOut(BaseModel):
     month_over_month_change_pct: Optional[Decimal]  # None if previous month total is 0
     insights: List[CategoryInsight] = Field(default_factory=list)
 
+class MonthlySeriesOut(BaseModel):
+    months: List[MonthlyTotal] 
 
 class ErrorResponse(BaseModel):
     detail: str

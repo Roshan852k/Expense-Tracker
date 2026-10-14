@@ -1,6 +1,7 @@
 import React from "react";
 import { useEffect, useState } from "react";
 import { getSummary } from "../services/api";
+import SpendCharts from "../components/SpendCharts";
 
 function Home() {
   const [summary, setSummary] = useState(null);
@@ -79,6 +80,9 @@ function Home() {
           </strong>
         </div>
       </div>
+
+      {/* Charts */}
+      <SpendCharts byCategory={summary.by_category} /> 
 
       {/* Spending by Category */}
       <h2>Spending by Category</h2>
