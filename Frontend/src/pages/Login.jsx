@@ -12,7 +12,7 @@ function Login() {
   return (
     <div className="login-card">
       <h1>💸 Spend Tracker</h1>
-      <p>Sign in with your Google account to see your expenses.</p>
+      <p>Sign in with your Google account to track your expenses.</p>
       <div className="login-btn">
         <GoogleLogin
           onSuccess={async (res) => {
