@@ -671,3 +671,13 @@ tbody tr:hover {
     width: 100%;
   }
 }
+
+.chart-card {
+  width: 100%;
+  padding: 20px;
+  margin-bottom: 28px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-sizing: border-box;
+}

@@ -1,28 +1,45 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { getSummary } from "../services/api";
+import { getSummary, getMonthly } from "../services/api";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 
 function Home() {
   const [summary, setSummary] = useState(null);
+  const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const fetchSummary = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const data = await getSummary();
-        setSummary(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchSummary();
-  }, []);
+  useEffect(() => {
+  const fetchSummary = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [summaryData, monthlyResult] = await Promise.all([
+        getSummary(),
+        getMonthly(6),
+      ]);
+
+      setSummary(summaryData);
+      setMonthlyData(monthlyResult.months ?? []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSummary();
+}, []);
 
   if (loading) return <div className="loading">Loading summary...</div>;
   if (error) return <p className="error">Error: {error}</p>;
@@ -79,10 +96,37 @@ function Home() {
           </strong>
         </div>
       </div>
+
+      <h2>Monthly Spending</h2>
+
+      <div className="chart-card">
+        {monthlyData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis tickFormatter={(value) => `₹${value}`} />
+              <Tooltip
+                formatter={(value) => [
+                  formatCurrency(value),
+                  "Total Spend",
+                ]}
+              />
+              <Bar
+                dataKey="total"
+                fill="#4f46e5"
+                radius={[6, 6, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p>No monthly spending data available.</p>
+        )}
+      </div>
       
 
       {/* Spending by Category */}
-      <h2>Spending by Category</h2>
+      <h2>Spending by Category (This Month)</h2>
       {summary?.by_category?.length > 0 ? (
         <div className="category-list">
           {summary.by_category.map((item) => (

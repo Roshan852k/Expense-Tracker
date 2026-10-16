@@ -122,59 +122,152 @@ def _build_insights(
     return insights
 
 
-def get_summary(db: Session, user_id: int, today: Optional[date] = None) -> schemas.SummaryOut:
-    """Builds the summary. `today` is injectable for deterministic testing."""
+# def get_summary(db: Session, user_id: int, today: Optional[date] = None) -> schemas.SummaryOut:
+#     """Builds the summary. `today` is injectable for deterministic testing."""
+#     if today is None:
+#         today = date.today()
+
+#     total_spend = Decimal(
+#         db.query(func.coalesce(func.sum(models.Expense.amount), 0)).filter(models.Expense.user_id == user_id).scalar()
+#     )
+
+#     cur_start, cur_end = _month_bounds(today.year, today.month)
+
+#     category_rows = (
+#         db.query(models.Expense.category, func.sum(models.Expense.amount))
+#         .filter(models.Expense.user_id == user_id)
+#         .group_by(models.Expense.category)
+#         .order_by(func.sum(models.Expense.amount).desc())
+#         .all()
+#     )
+#     by_category = [
+#         schemas.CategoryTotal(category=cat, total=Decimal(total))
+#         for cat, total in category_rows
+#     ]
+
+#     cur_start, cur_end = _month_bounds(today.year, today.month)
+#     prev_year, prev_month = _prev_month(today.year, today.month)
+#     prev_start, prev_end = _month_bounds(prev_year, prev_month)
+
+#     current_total = _sum_between(db, user_id, cur_start, cur_end)
+#     previous_total = _sum_between(db, user_id, prev_start, prev_end)
+
+#     change = current_total - previous_total
+#     if previous_total != 0:
+#         change_pct = (change / previous_total) * 100
+#     else:
+#         change_pct = None
+
+#     current_by_category = _category_totals_between(db, user_id, cur_start, cur_end)
+#     previous_by_category = _category_totals_between(db, user_id, prev_start, prev_end)
+#     insights = _build_insights(current_by_category, previous_by_category)
+
+#     return schemas.SummaryOut(
+#         total_spend=total_spend,
+#         by_category=by_category,
+#         current_month=schemas.MonthlyTotal(
+#             month=f"{cur_start.year:04d}-{cur_start.month:02d}", total=current_total
+#         ),
+#         previous_month=schemas.MonthlyTotal(
+#             month=f"{prev_start.year:04d}-{prev_start.month:02d}", total=previous_total
+#         ),
+#         month_over_month_change=change,
+#         month_over_month_change_pct=(
+#             change_pct.quantize(Decimal("0.01")) if change_pct is not None else None
+#         ),
+#         insights=insights,
+#     )
+
+
+def get_summary(
+    db: Session,
+    user_id: int,
+    today: Optional[date] = None,
+) -> schemas.SummaryOut:
+    """Build the expense summary. `today` is injectable for deterministic testing."""
     if today is None:
         today = date.today()
 
+    # All-time spending
     total_spend = Decimal(
-        db.query(func.coalesce(func.sum(models.Expense.amount), 0)).filter(models.Expense.user_id == user_id).scalar()
+        db.query(
+            func.coalesce(func.sum(models.Expense.amount), 0)
+        )
+        .filter(models.Expense.user_id == user_id)
+        .scalar()
     )
 
+    # Current and previous month date ranges
+    cur_start, cur_end = _month_bounds(today.year, today.month)
+
+    prev_year, prev_month = _prev_month(today.year, today.month)
+    prev_start, prev_end = _month_bounds(prev_year, prev_month)
+
+    # Spending by category for the current month only
     category_rows = (
-        db.query(models.Expense.category, func.sum(models.Expense.amount))
-        .filter(models.Expense.user_id == user_id)
+        db.query(
+            models.Expense.category,
+            func.sum(models.Expense.amount),
+        )
+        .filter(
+            models.Expense.user_id == user_id,
+            models.Expense.date >= cur_start,
+            models.Expense.date < cur_end,
+        )
         .group_by(models.Expense.category)
         .order_by(func.sum(models.Expense.amount).desc())
         .all()
     )
+
     by_category = [
         schemas.CategoryTotal(category=cat, total=Decimal(total))
         for cat, total in category_rows
     ]
 
-    cur_start, cur_end = _month_bounds(today.year, today.month)
-    prev_year, prev_month = _prev_month(today.year, today.month)
-    prev_start, prev_end = _month_bounds(prev_year, prev_month)
-
+    # Current and previous month totals
     current_total = _sum_between(db, user_id, cur_start, cur_end)
     previous_total = _sum_between(db, user_id, prev_start, prev_end)
 
+    # Month-over-month change
     change = current_total - previous_total
+
     if previous_total != 0:
         change_pct = (change / previous_total) * 100
     else:
         change_pct = None
 
-    current_by_category = _category_totals_between(db, user_id, cur_start, cur_end)
-    previous_by_category = _category_totals_between(db, user_id, prev_start, prev_end)
-    insights = _build_insights(current_by_category, previous_by_category)
+    # Spending alerts based on category changes
+    current_by_category = _category_totals_between(
+        db, user_id, cur_start, cur_end
+    )
+    previous_by_category = _category_totals_between(
+        db, user_id, prev_start, prev_end
+    )
+    insights = _build_insights(
+        current_by_category,
+        previous_by_category,
+    )
 
     return schemas.SummaryOut(
         total_spend=total_spend,
         by_category=by_category,
         current_month=schemas.MonthlyTotal(
-            month=f"{cur_start.year:04d}-{cur_start.month:02d}", total=current_total
+            month=f"{cur_start.year:04d}-{cur_start.month:02d}",
+            total=current_total,
         ),
         previous_month=schemas.MonthlyTotal(
-            month=f"{prev_start.year:04d}-{prev_start.month:02d}", total=previous_total
+            month=f"{prev_start.year:04d}-{prev_start.month:02d}",
+            total=previous_total,
         ),
         month_over_month_change=change,
         month_over_month_change_pct=(
-            change_pct.quantize(Decimal("0.01")) if change_pct is not None else None
+            change_pct.quantize(Decimal("0.01"))
+            if change_pct is not None
+            else None
         ),
         insights=insights,
     )
+
 
 
 def get_monthly_totals(
