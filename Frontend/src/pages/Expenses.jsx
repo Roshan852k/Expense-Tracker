@@ -9,6 +9,7 @@ function Expenses() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -98,19 +99,51 @@ function Expenses() {
     }
   };
 
-  const handleDelete = async (expense) => {
-    const ok = window.confirm(
-      `Delete this expense (${expense.category}, ${formatCurrency(expense.amount)})? This cannot be undone.`
-    );
-    if (!ok) return;
+  // const handleDelete = async (expense) => {
+  //   const ok = window.confirm(
+  //     `Delete this expense (${expense.category}, ${formatCurrency(expense.amount)})? This cannot be undone.`
+  //   );
+  //   if (!ok) return;
+
+  //   try {
+  //     setDeletingId(expense.id);
+  //     setError("");
+  //     await deleteExpense(expense.id);
+
+  //     const isLastRowOnPage = expenses.length === 1 && offset > 0;
+  //     await fetchExpenses(isLastRowOnPage ? offset - limit : offset);
+  //   } catch (err) {
+  //     setError(err.message);
+  //   } finally {
+  //     setDeletingId(null);
+  //   }
+  // };
+
+  // Open the confirmation modal
+  const handleDelete = (expense) => {
+    setPendingDelete(expense);
+  };
+
+  // Delete after confirmation
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    const expense = pendingDelete;
 
     try {
       setDeletingId(expense.id);
       setError("");
+
       await deleteExpense(expense.id);
 
-      const isLastRowOnPage = expenses.length === 1 && offset > 0;
-      await fetchExpenses(isLastRowOnPage ? offset - limit : offset);
+      const isLastRowOnPage =
+        expenses.length === 1 && offset > 0;
+
+      setPendingDelete(null);
+
+      await fetchExpenses(
+        isLastRowOnPage ? offset - limit : offset
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -244,6 +277,51 @@ function Expenses() {
         </>
       ) : (
         <p>No expenses found. Try adjusting your filters.</p>
+      )}
+      {pendingDelete && (
+        <div className="modal-overlay">
+          <div
+            className="delete-modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-modal-title"
+          >
+            <div className="delete-modal-icon">
+              <span>🗑</span>
+            </div>
+
+            <h2 id="delete-modal-title">
+              Delete expense?
+            </h2>
+
+            <p>
+              Are you sure you want to delete this expense?
+              This action cannot be undone.
+            </p>
+
+            <div className="delete-modal-actions">
+              <button
+                type="button"
+                className="btn-cancel-delete"
+                onClick={() => setPendingDelete(null)}
+                disabled={deletingId !== null}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="btn-confirm-delete"
+                onClick={handleConfirmDelete}
+                disabled={deletingId !== null}
+              >
+                {deletingId === pendingDelete.id
+                  ? "Deleting..."
+                  : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
