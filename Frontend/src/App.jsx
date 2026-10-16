@@ -19,10 +19,10 @@ function Navbar() {
           <Link to="/">Home</Link>
           <Link to="/add-expense">Add Expense</Link>
           <Link to="/expenses">Expenses</Link>
-          <span className="nav-user">
+          {/* <span className="nav-user">
             {user.picture && <img src={user.picture} alt="" referrerPolicy="no-referrer" />}
             {user.name || user.email}
-          </span>
+          </span> */}
           <button className="nav-logout" onClick={logout}>Sign out</button>
         </div>
       )}
