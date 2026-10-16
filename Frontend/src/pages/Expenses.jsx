@@ -193,7 +193,7 @@ function Expenses() {
                 <th>Category</th>
                 <th>Amount</th>
                 <th>Note</th>
-                <th></th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
