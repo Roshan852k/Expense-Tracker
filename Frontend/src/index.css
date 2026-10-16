@@ -341,3 +341,9 @@ tbody tr:hover {
     padding: 0.5rem;
   }
 }
+
+.login-card { max-width: 380px; margin: 80px auto; text-align: center; padding: 32px 24px; border: 1px solid #e3e3e3; border-radius: 12px; background: #fff; }
+.login-btn { display: flex; justify-content: center; margin-top: 24px; }
+.nav-user { display: inline-flex; align-items: center; gap: 8px; margin-left: 16px; }
+.nav-user img { width: 28px; height: 28px; border-radius: 50%; }
+.nav-logout { margin-left: 12px; }

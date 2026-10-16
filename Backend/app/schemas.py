@@ -77,3 +77,23 @@ class MonthlySeriesOut(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+
+class GoogleLoginIn(BaseModel):
+    credential: str = Field(..., min_length=1, description="Google ID token from Google Sign-In")
+ 
+ 
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+ 
+    id: int
+    email: str
+    name: Optional[str] = None
+    picture: Optional[str] = None
+ 
+ 
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut

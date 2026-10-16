@@ -1,32 +1,43 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link, Navigate  } from "react-router-dom";
 import { useState } from "react";
 import Home from "./pages/Home";
 import AddExpense from "./pages/AddExpense";
 import Expenses from "./pages/Expenses";
+import Login from "./pages/Login";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { useAuth } from "./context/AuthContext";
 import "./index.css";
 
 function Navbar() {
+  const { user, logout } = useAuth();
   return (
     <nav className="navbar">
       <h2>💸 Spend Tracker</h2>
-
-      <div className="nav-links">
-        <Link to="/">Home</Link>
-        <Link to="/add-expense">Add Expense</Link>
-        <Link to="/expenses">Expenses</Link>
-      </div>
+      {user && (
+        <div className="nav-links">
+          <Link to="/">Home</Link>
+          <Link to="/add-expense">Add Expense</Link>
+          <Link to="/expenses">Expenses</Link>
+          <span className="nav-user">
+            {user.picture && <img src={user.picture} alt="" referrerPolicy="no-referrer" />}
+            {user.name || user.email}
+          </span>
+          <button className="nav-logout" onClick={logout}>Sign out</button>
+        </div>
+      )}
     </nav>
   );
 }
 
-function App() {
-  const [apiKeyVersion, setApiKeyVersion] = useState(0);
+function Protected({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="loading">Loading...</div>;
+  return user ? children : <Navigate to="/login" replace />;
+}
 
-  const handleApiKeySet = () => {
-    setApiKeyVersion(prev => prev + 1);
-  };
+function App() {
+  const { user } = useAuth();
 
   return (
     <BrowserRouter>
@@ -35,9 +46,11 @@ function App() {
 
         <main className="container">
           <Routes>
-            <Route path="/" element={<Home key={apiKeyVersion} />} />
-            <Route path="/add-expense" element={<AddExpense />} />
-            <Route path="/expenses" element={<Expenses key={apiKeyVersion} />} />
+             <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Protected><Home key={user?.id} /></Protected>} />
+            <Route path="/add-expense" element={<Protected><AddExpense /></Protected>} />
+            <Route path="/expenses" element={<Protected><Expenses key={user?.id} /></Protected>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
 

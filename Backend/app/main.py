@@ -8,7 +8,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from . import crud, models, schemas
-from .auth import require_api_key
+from .auth import (
+    create_access_token, get_current_user, upsert_user, verify_google_credential,
+)
 from .database import engine, get_db, Base
 
 # Create tables on startup (fine for SQLite / small projects; a real project
@@ -46,21 +48,32 @@ def health():
     return {"status": "ok"}
 
 
+@app.post("/auth/google", response_model=schemas.TokenOut)
+def login_with_google(body: schemas.GoogleLoginIn, db: Session = Depends(get_db)):
+    """Exchange a Google ID token for this app's session token."""
+    claims = verify_google_credential(body.credential)
+    user = upsert_user(db, claims)
+    return schemas.TokenOut(access_token=create_access_token(user), user=user)
+ 
+ 
+@app.get("/auth/me", response_model=schemas.UserOut)
+def read_me(user: models.User = Depends(get_current_user)):
+    return user
+ 
+
 @app.post(
     "/expenses",
     response_model=schemas.ExpenseOut,
-    status_code=201,
-    dependencies=[Depends(require_api_key)],
+    status_code=201
 )
-def create_expense(expense: schemas.ExpenseCreate, db: Session = Depends(get_db)):
-    db_expense = crud.create_expense(db, expense)
+def create_expense(expense: schemas.ExpenseCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user),):
+    db_expense = crud.create_expense(db, user.id, expense)
     return db_expense
 
 
 @app.get(
     "/expenses",
-    response_model=List[schemas.ExpenseOut],
-    dependencies=[Depends(require_api_key)],
+    response_model=List[schemas.ExpenseOut]
 )
 def read_expenses(
     category: Optional[str] = Query(default=None),
@@ -69,40 +82,39 @@ def read_expenses(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
     if date_from and date_to and date_from > date_to:
         raise HTTPException(status_code=400, detail="date_from must be on or before date_to")
     return crud.list_expenses(
-        db, category=category, date_from=date_from, date_to=date_to, limit=limit, offset=offset
+        db,  user.id, category=category, date_from=date_from, date_to=date_to, limit=limit, offset=offset
     )
 
 
 @app.delete(
     "/expenses/{expense_id}",
-    status_code=204,
-    dependencies=[Depends(require_api_key)],
+    status_code=204
 )
-def delete_expense(expense_id: int, db: Session = Depends(get_db)):
-    if not crud.delete_expense(db, expense_id):
+def delete_expense(expense_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user),):
+    if not crud.delete_expense(db, user.id, expense_id):
         raise HTTPException(status_code=404, detail=f"Expense {expense_id} not found")
     
 
 @app.get(
     "/summary",
     response_model=schemas.SummaryOut,
-    dependencies=[Depends(require_api_key)],
 )
-def read_summary(db: Session = Depends(get_db)):
-    return crud.get_summary(db)
+def read_summary(db: Session = Depends(get_db), user: models.User = Depends(get_current_user),):
+    return crud.get_summary(db, user.id)
 
 
 @app.get(
     "/summary/monthly",
     response_model=schemas.MonthlySeriesOut,
-    dependencies=[Depends(require_api_key)],
 )
 def read_monthly(
     months: int = Query(default=6, ge=1, le=24, description="How many months back, including this one"),
     db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
 ):
-    return crud.get_monthly_totals(db, months=months)
+    return crud.get_monthly_totals(db, user.id, months=months)

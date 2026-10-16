@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def create_expense(db: Session, expense: schemas.ExpenseCreate) -> models.Expense:
+def create_expense(db: Session, user_id: int, expense: schemas.ExpenseCreate) -> models.Expense:
     db_expense = models.Expense(
+        user_id=user_id,
         amount=expense.amount,
         category=expense.category,
         note=expense.note or "",
@@ -21,9 +22,9 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate) -> models.Expens
     return db_expense
 
 
-def delete_expense(db: Session, expense_id: int) -> bool:
+def delete_expense(db: Session, user_id: int, expense_id: int) -> bool:
     db_expense = db.get(models.Expense, expense_id)
-    if db_expense is None:
+    if db_expense is None or db_expense.user_id != user_id:
         return False
     db.delete(db_expense)
     db.commit()
@@ -32,13 +33,14 @@ def delete_expense(db: Session, expense_id: int) -> bool:
 
 def list_expenses(
     db: Session,
+    user_id: int,
     category: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     limit: int = 100,
     offset: int = 0,
 ) -> List[models.Expense]:
-    query = db.query(models.Expense)
+    query = db.query(models.Expense).filter(models.Expense.user_id == user_id)
     if category:
         query = query.filter(models.Expense.category == category)
     if date_from:
@@ -64,19 +66,19 @@ def _prev_month(year: int, month: int) -> tuple[int, int]:
     return year, month - 1
 
 
-def _sum_between(db: Session, start: date, end_exclusive: date) -> Decimal:
+def _sum_between(db: Session, user_id: int, start: date, end_exclusive: date) -> Decimal:
     total = (
         db.query(func.coalesce(func.sum(models.Expense.amount), 0))
-        .filter(models.Expense.date >= start, models.Expense.date < end_exclusive)
+        .filter(models.Expense.user_id == user_id,models.Expense.date >= start, models.Expense.date < end_exclusive)
         .scalar()
     )
     return Decimal(total)
 
 
-def _category_totals_between(db: Session, start: date, end_exclusive: date) -> dict:
+def _category_totals_between(db: Session, user_id: int, start: date, end_exclusive: date) -> dict:
     rows = (
         db.query(models.Expense.category, func.sum(models.Expense.amount))
-        .filter(models.Expense.date >= start, models.Expense.date < end_exclusive)
+        .filter(models.Expense.user_id == user_id, models.Expense.date >= start, models.Expense.date < end_exclusive)
         .group_by(models.Expense.category)
         .all()
     )
@@ -120,17 +122,18 @@ def _build_insights(
     return insights
 
 
-def get_summary(db: Session, today: Optional[date] = None) -> schemas.SummaryOut:
+def get_summary(db: Session, user_id: int, today: Optional[date] = None) -> schemas.SummaryOut:
     """Builds the summary. `today` is injectable for deterministic testing."""
     if today is None:
         today = date.today()
 
     total_spend = Decimal(
-        db.query(func.coalesce(func.sum(models.Expense.amount), 0)).scalar()
+        db.query(func.coalesce(func.sum(models.Expense.amount), 0)).filter(models.Expense.user_id == user_id).scalar()
     )
 
     category_rows = (
         db.query(models.Expense.category, func.sum(models.Expense.amount))
+        .filter(models.Expense.user_id == user_id)
         .group_by(models.Expense.category)
         .order_by(func.sum(models.Expense.amount).desc())
         .all()
@@ -144,8 +147,8 @@ def get_summary(db: Session, today: Optional[date] = None) -> schemas.SummaryOut
     prev_year, prev_month = _prev_month(today.year, today.month)
     prev_start, prev_end = _month_bounds(prev_year, prev_month)
 
-    current_total = _sum_between(db, cur_start, cur_end)
-    previous_total = _sum_between(db, prev_start, prev_end)
+    current_total = _sum_between(db, user_id, cur_start, cur_end)
+    previous_total = _sum_between(db, user_id, prev_start, prev_end)
 
     change = current_total - previous_total
     if previous_total != 0:
@@ -153,8 +156,8 @@ def get_summary(db: Session, today: Optional[date] = None) -> schemas.SummaryOut
     else:
         change_pct = None
 
-    current_by_category = _category_totals_between(db, cur_start, cur_end)
-    previous_by_category = _category_totals_between(db, prev_start, prev_end)
+    current_by_category = _category_totals_between(db, user_id, cur_start, cur_end)
+    previous_by_category = _category_totals_between(db, user_id, prev_start, prev_end)
     insights = _build_insights(current_by_category, previous_by_category)
 
     return schemas.SummaryOut(
@@ -175,7 +178,7 @@ def get_summary(db: Session, today: Optional[date] = None) -> schemas.SummaryOut
 
 
 def get_monthly_totals(
-    db: Session, months: int = 6, today: Optional[date] = None
+    db: Session, user_id: int, months: int = 6, today: Optional[date] = None
 ) -> schemas.MonthlySeriesOut:
     """Total spend per calendar month for the last `months` months
     (including the current one), oldest first. Months with no spend are
@@ -198,7 +201,7 @@ def get_monthly_totals(
     month_col = func.extract("month", models.Expense.date)
     rows = (
         db.query(year_col, month_col, func.sum(models.Expense.amount))
-        .filter(models.Expense.date >= start, models.Expense.date < end)
+        .filter(models.Expense.user_id == user_id, models.Expense.date >= start, models.Expense.date < end)
         .group_by(year_col, month_col)
         .all()
     )

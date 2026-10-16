@@ -1,104 +1,76 @@
-// Get API base URL from environment or use default
-const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
+const TOKEN_KEY = "spend_tracker_token";
 
-const DEFAULT_API_KEY =
-  import.meta.env.VITE_API_KEY || "dev-local-only-key";
+export const getToken = () => localStorage.getItem(TOKEN_KEY);
+export const setToken = (t) =>
+  t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
-/**
- * Get stored API key from sessionStorage
- */
-export function getApiKey() {
-  return sessionStorage.getItem("apiKey") || DEFAULT_API_KEY;
-}
-
-/**
- * Set API key in sessionStorage
- */
-export function setApiKey(key) {
-  if (key) {
-    sessionStorage.setItem("apiKey", key);
-  } else {
-    sessionStorage.removeItem("apiKey");
-  }
-}
-
-/**
- * Check if API key is set
- */
-export function hasApiKey() {
-  return !!getApiKey();
-}
+// Called when the server says our session is invalid/expired (AuthContext sets this).
+let onUnauthorized = () => {};
+export const setUnauthorizedHandler = (fn) => {
+  onUnauthorized = fn;
+};
 
 async function fetchJSON(url, options = {}) {
-  const apiKey = getApiKey();
-
-  const headers = {
-    ...(options.headers || {}),
-    "X-API-Key": apiKey,
-  };
-
+  const token = getToken();
   const response = await fetch(`${API_BASE}${url}`, {
     ...options,
-    headers,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
 
   let data = {};
   try {
     data = await response.json();
-  } catch (err) {
-    // If it fails to parse JSON but the response was ok, we might still want to proceed
-    // Or if it's not ok, we handle the error below anyway
+  } catch {
+    // empty body (e.g. 204)
   }
 
   if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error(
-        "Missing or invalid API key. Please set your API key and try again."
-      );
+    if (response.status === 401 && token) {
+      onUnauthorized();
+      throw new Error("Your session expired. Please sign in again.");
     }
-
     throw new Error(
       typeof data.detail === "string"
         ? data.detail
-        : data.detail ? JSON.stringify(data.detail) : response.statusText || "An error occurred"
+        : data.detail
+        ? JSON.stringify(data.detail)
+        : response.statusText || "An error occurred"
     );
   }
-
   return data;
 }
+
+export const loginWithGoogle = (credential) =>
+  fetchJSON("/auth/google", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ credential }),
+  });
+
+export const getMe = () => fetchJSON("/auth/me");
 
 export const getSummary = () => fetchJSON("/summary");
 
 export const getExpenses = (params = {}) => {
   const query = new URLSearchParams();
-
-  if (params.category) query.set("category", params.category);
-  if (params.date_from) query.set("date_from", params.date_from);
-  if (params.date_to) query.set("date_to", params.date_to);
-
+  ["category", "date_from", "date_to", "limit", "offset"].forEach((k) => {
+    if (params[k] !== undefined && params[k] !== "") query.set(k, params[k]);
+  });
   return fetchJSON(`/expenses?${query.toString()}`);
 };
 
 export const addExpense = (expense) =>
   fetchJSON("/expenses", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(expense),
   });
 
-export async function deleteExpense(id) {
-  const resp = await fetch(`${API_BASE}/expenses/${id}`, {
-    method: "DELETE",
-    headers: { "X-API-Key": DEFAULT_API_KEY },   // copy whatever header/base URL getExpenses uses
-  });
-  if (!resp.ok) {
-    const data = await resp.json().catch(() => ({}));
-    throw new Error(data.detail || "Failed to delete expense");
-  }
-}
+export const deleteExpense = (id) => fetchJSON(`/expenses/${id}`, { method: "DELETE" });
 
 export const getMonthly = (months = 6) => fetchJSON(`/summary/monthly?months=${months}`);
