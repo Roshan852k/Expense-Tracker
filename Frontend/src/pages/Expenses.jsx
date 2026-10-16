@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { getExpenses, deleteExpense  } from "../services/api";
 
 function Expenses() {
+   const categories = [ "Food", "Travel", "Shopping", "Bills", "Entertainment", "Healthcare", "Education", "Groceries", "Rent", "Other", ];
+
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -144,13 +146,18 @@ function Expenses() {
       <div className="filters">
         <label>
           Category:
-          <input
-            type="text"
+          <select
             name="category"
             value={filters.category}
             onChange={handleFilterChange}
-            placeholder="e.g., Food, Transport"
-          />
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
@@ -174,7 +181,7 @@ function Expenses() {
         </label>
 
         <button onClick={handleApplyFilters}>Apply Filters</button>
-        <button onClick={handleClearFilters} style={{ background: "#666" }}>
+        <button className="btn-clear" onClick={handleClearFilters}>
           Clear
         </button>
       </div>
@@ -186,7 +193,8 @@ function Expenses() {
         <p className="loading">Loading expenses...</p>
       ) : expenses.length > 0 ? (
         <>
-          <table>
+          <div className="table-wrap">
+          <table className="expenses-table">
             <thead>
               <tr>
                 <th>Date</th>
@@ -199,28 +207,29 @@ function Expenses() {
             <tbody>
               {expenses.map((expense) => (
                 <tr key={expense.id}>
-                  <td>{formatDate(expense.date)}</td>
-                  <td>{expense.category}</td>
-                  <td style={{ textAlign: "right" }}>
+                  <td data-label="Date">{formatDate(expense.date)}</td>
+                  <td data-label="Category">{expense.category}</td>
+                  <td data-label="Amount" className="amount-cell">
                     {formatCurrency(expense.amount)}
                   </td>
-                  <td>{expense.note || "-"}</td>
-                <td>
-                <button
-                  onClick={() => handleDelete(expense)}
-                  disabled={deletingId === expense.id}
-                  style={{ background: "#b00020" }}
-                >
-                  {deletingId === expense.id ? "Deleting..." : "Delete"}
-                </button>
-              </td>
-              </tr>
+                  <td data-label="Note">{expense.note || "-"}</td>
+                  <td className="action-cell">
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDelete(expense)}
+                      disabled={deletingId === expense.id}
+                    >
+                      {deletingId === expense.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
+          </div>
 
           {/* Pagination */}
-          <div className="pagination" style={{ marginTop: "1rem" }}>
+          <div className="pagination">
             <button onClick={handlePrev} disabled={offset === 0}>
               ← Previous
             </button>

@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { addExpense } from "../services/api";
 import { useNavigate } from "react-router-dom";
 
@@ -22,7 +22,18 @@ function AddExpense() {
   });
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!success) return;
+
+    const timer = setTimeout(() => {
+      setSuccess("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [success]);
 
   const handleChange = (e) => {
     setForm({
@@ -37,6 +48,7 @@ function AddExpense() {
     try {
       setLoading(true);
       setError("");
+      setSuccess("");
 
       await addExpense({
         amount: Number(form.amount),
@@ -45,7 +57,16 @@ function AddExpense() {
         date: form.date,
       });
 
-      navigate("/");
+      setSuccess("Expense added successfully!");
+
+      // navigate("/add-expense");
+      setForm({
+        amount: "",
+        category: "",
+        note: "",
+        date: getLocalDate(),
+      });
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -57,6 +78,7 @@ function AddExpense() {
     <div>
       <h1>Add Expense</h1>
 
+      {success && <p className="success">{success}</p>}
       {error && <p className="error">{error}</p>}
 
       <form className="expense-form" onSubmit={handleSubmit}>
