@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 function AddExpense() {
   const navigate = useNavigate();
 
-  const categories = [ "Food", "Travel", "Shopping", "Bills", "Entertainment", "Healthcare", "Education", "Groceries", "Rent", "Other", ];
+  const categories = [ "Food", "Fruits / Juice", "Travel", "Shopping", "Bills", "Entertainment", "Healthcare", "Education", "Groceries", "Rent", "Other", ];
 
   // Get local date YYYY-MM-DD
   const getLocalDate = () => {
