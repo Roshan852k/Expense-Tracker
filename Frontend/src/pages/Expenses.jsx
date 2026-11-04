@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { getExpenses, deleteExpense  } from "../services/api";
 
 function Expenses() {
-   const categories = [ "Food", "Fruits / Juice", "Travel", "Shopping", "Bills", "Entertainment", "Healthcare", "Education", "Groceries", "Rent", "Other", ];
+   const categories = [ "Food", "Fruits / Juice", "Travel", "Shopping", "Bills", "Entertainment", "Mobile / Recharge", "Healthcare", "Personal Care", "Education", "Groceries", "Rent", "Other", ];
 
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
