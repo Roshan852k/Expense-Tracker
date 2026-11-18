@@ -74,3 +74,41 @@ export const addExpense = (expense) =>
 export const deleteExpense = (id) => fetchJSON(`/expenses/${id}`, { method: "DELETE" });
 
 export const getMonthly = (months = 6) => fetchJSON(`/summary/monthly?months=${months}`);
+
+export async function downloadExpenses(params = {}) {
+  const query = new URLSearchParams();
+  ["category", "date_from", "date_to"].forEach((k) => {
+    if (params[k]) query.set(k, params[k]);
+  });
+
+  const token = getToken();
+  const response = await fetch(`${API_BASE}/expenses/export?${query.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    if (response.status === 401 && token) {
+      onUnauthorized();
+      throw new Error("Your session expired. Please sign in again.");
+    }
+    let detail = "";
+    try {
+      detail = (await response.json()).detail;
+    } catch {
+      // not JSON
+    }
+    throw new Error(typeof detail === "string" && detail ? detail : "Download failed");
+  }
+
+  const match = /filename="?([^";]+)"?/i.exec(response.headers.get("Content-Disposition") || "");
+  const filename = match ? match[1] : "expense_statement.pdf";
+
+  const url = URL.createObjectURL(await response.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

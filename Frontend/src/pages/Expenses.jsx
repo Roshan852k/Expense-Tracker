@@ -1,6 +1,6 @@
 import React from "react";
 import { useEffect, useState } from "react";
-import { getExpenses, deleteExpense  } from "../services/api";
+import { getExpenses, deleteExpense, downloadExpenses  } from "../services/api";
 
 function Expenses() {
    const categories = [ "Food", "Fruits / Juice", "Travel", "Shopping", "Bills", "Entertainment", "Mobile / Recharge", "Healthcare", "Personal Care", "Education", "Groceries", "Rent", "Other", ];
@@ -10,6 +10,7 @@ function Expenses() {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [downloading, setDownloading] = useState(""); // "", "csv" or "pdf"
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -86,6 +87,23 @@ function Expenses() {
       date_to: "",
     });
     setOffset(0);
+  };
+
+  // Download the filtered range as CSV
+  const handleDownload = async (format) => {
+    if (filters.date_from && filters.date_to && filters.date_from > filters.date_to) {
+      setError("The 'From' date must be on or before the 'To' date.");
+      return;
+    }
+    try {
+      setDownloading(format);
+      setError("");
+      await downloadExpenses(filters, format);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloading("");
+    }
   };
 
   // Pagination
@@ -216,6 +234,25 @@ function Expenses() {
         <button onClick={handleApplyFilters}>Apply Filters</button>
         <button className="btn-clear" onClick={handleClearFilters}>
           Clear
+        </button>
+        <button
+          className="btn-pdf" onClick={() => handleDownload("pdf")} disabled={!!downloading}>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v12" />
+            <path d="M7 11l5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          {downloading === "pdf" ? "Preparing..." : "Download"}
         </button>
       </div>
 

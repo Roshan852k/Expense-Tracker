@@ -4,10 +4,10 @@ from typing import Optional, List
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
-from . import crud, models, schemas
+from . import crud, models, schemas, report
 from .auth import (
     create_access_token, get_current_user, upsert_user, verify_google_credential,
 )
@@ -90,6 +90,42 @@ def read_expenses(
         db,  user.id, category=category, date_from=date_from, date_to=date_to, limit=limit, offset=offset
     )
 
+
+@app.get("/expenses/export")
+def export_expenses(
+    category: Optional[str] = Query(default=None),
+    date_from: Optional[date] = Query(default=None, description="Inclusive start date, YYYY-MM-DD"),
+    date_to: Optional[date] = Query(default=None, description="Inclusive end date, YYYY-MM-DD"),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Download the logged-in user's expenses for a date range as CSV or a PDF statement."""
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(status_code=400, detail="date_from must be on or before date_to")
+
+    rows = crud.list_expenses_for_export(
+        db, user.id, category=category, date_from=date_from, date_to=date_to
+    )
+
+    start = date_from.isoformat() if date_from else "start"
+    end = date_to.isoformat() if date_to else "latest"
+
+    pdf = report.build_statement_pdf(
+        user_name=user.name or "",
+        user_email=user.email,
+        expenses=rows,
+        date_from=date_from,
+        date_to=date_to,
+        category=category,
+    )
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="expense_statement_{start}_to_{end}.pdf"',
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
 
 @app.delete(
     "/expenses/{expense_id}",

@@ -449,6 +449,14 @@ tbody tr:hover {
 .btn-delete { background: #b00020; }
 .btn-delete:hover:not(:disabled) { background: #8e001a; }
 .btn-clear { background: #666; }
+.btn-pdf {
+  background: #1a56a8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+.btn-pdf:hover:not(:disabled) { background: #134282; }
 .amount-cell { text-align: right; }
 .table-wrap { width: 100%; overflow-x: auto; }
 

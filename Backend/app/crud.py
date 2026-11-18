@@ -50,6 +50,22 @@ def list_expenses(
     query = query.order_by(models.Expense.date.desc(), models.Expense.id.desc())
     return query.offset(offset).limit(limit).all()
 
+def list_expenses_for_export(
+    db: Session,
+    user_id: int,
+    category: Optional[str] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+) -> List[models.Expense]:
+    """All of the user's expenses in the range (no paging), oldest first."""
+    query = db.query(models.Expense).filter(models.Expense.user_id == user_id)
+    if category:
+        query = query.filter(models.Expense.category == category)
+    if date_from:
+        query = query.filter(models.Expense.date >= date_from)
+    if date_to:
+        query = query.filter(models.Expense.date <= date_to)
+    return query.order_by(models.Expense.date.asc(), models.Expense.id.asc()).all()
 
 def _month_bounds(year: int, month: int) -> tuple[date, date]:
     start = date(year, month, 1)
