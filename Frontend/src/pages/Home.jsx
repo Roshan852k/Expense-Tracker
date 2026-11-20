@@ -96,33 +96,6 @@ function Home() {
           </strong>
         </div>
       </div>
-
-      <h2>Monthly Spending</h2>
-
-      <div className="chart-card">
-        {monthlyData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `₹${value}`} />
-              <Tooltip
-                formatter={(value) => [
-                  formatCurrency(value),
-                  "Total Spend",
-                ]}
-              />
-              <Bar
-                dataKey="total"
-                fill="#4f46e5"
-                radius={[6, 6, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p>No monthly spending data available.</p>
-        )}
-      </div>
       
 
       {/* Spending by Category */}
@@ -159,6 +132,34 @@ function Home() {
           </div>
         </>
       )}
+
+      <h2>Monthly Spending</h2>
+
+      <div className="chart-card">
+        {monthlyData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={monthlyData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis tickFormatter={(value) => `₹${value}`} />
+              <Tooltip
+                formatter={(value) => [
+                  formatCurrency(value),
+                  "Total Spend",
+                ]}
+              />
+              <Bar
+                dataKey="total"
+                fill="#4f46e5"
+                radius={[6, 6, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p>No monthly spending data available.</p>
+        )}
+      </div>
+
     </div>
   );
 }
